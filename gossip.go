@@ -17,10 +17,15 @@ var hb_send_t uint64
 var node_fail_t uint64
 var shutdown_t uint64
 
-type heartbit struct {
+type heartbeat struct {
 	id   int
 	hb   uint64
 	time uint64
+}
+
+type hbTable struct {
+	table []heartbeat
+	id int
 }
 
 func main() {
@@ -53,10 +58,10 @@ func main() {
 
 	fmt.Println(hb_counter_t, " ", hb_send_t, " ", node_fail_t)
 
-	var gossip_channels [numNodes]chan heartbit
-	var print_channel = make(chan heartbit, numNodes+1)
+	var gossip_channels [numNodes]chan heartbeat
+	var print_channel = make(chan hbTable, numNodes+1)
 	for i := range gossip_channels {
-		gossip_channels[i] = make(chan heartbit)
+		gossip_channels[i] = make(chan heartbeat)
 	}
 
 	var connections = make(map[int][]int)
@@ -80,46 +85,49 @@ func main() {
 	for {
 		if len(print_channel) > 0 {
 			p_val := <-print_channel
-			fmt.Println(p_val)
+			fmt.Println("\n---------------------\n ");
+			fmt.Println("Node: ", p_val.id, "\n ");
+			fmt.Println("Table: \n", p_val.table);
 		}
 	}
 }
 
-func spinUpNode(id int, neighbors []int, channel [numNodes]chan heartbit, p_channel chan heartbit) {
+func spinUpNode(id int, neighbors []int, channel [numNodes]chan heartbeat, p_channel chan hbTable) {
 	//Vars to keep track of current node's heatbeat and local time
-	var my_hb heartbit
-	my_hb.id = id
-	my_hb.hb = 0
-	my_hb.time = 0
+	table := []heartbeat{};
+	
+	var my_hb uint64;
+	my_hb = 0;
+
+	var local_fail_t = node_fail_t;
+	var local_send_t = hb_send_t;
+	var local_counter_t = hb_counter_t;
 
 	//Vars for conditionals
 	var local_t uint64
 	local_t = 0 //Used to keep track of current node's local time
 
 	for {
-		//TEST FOR NOW (DELETE LATER)
-		if local_t == 10 {
-			p_channel <- my_hb
-			local_t = 0
-		}
-
 		//Simulate shutdown after x seconds
-		if shutdown_t == local_t {
-
+		if node_fail_t == local_t {
+			local_fail_t += node_fail_t;
 		}
 
 		//Send current heartbeat to both neighbors
 		if hb_send_t == local_t {
-
+			local_send_t += hb_send_t;
 		} else { //Recv current heartbeat from both neighbors
 
 		}
 
 		//Increment heartbeat periodically
-		if hb_counter_t == local_t {
-
+		if local_counter_t == local_t {
+			my_hb ++;
+			local_counter_t += hb_counter_t;
 		}
 
 		local_t++ //Increment local time
 	}
 }
+
+// func sendHB(id int)
