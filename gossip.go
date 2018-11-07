@@ -92,7 +92,7 @@ func main() {
 	}
 }
 
-func spinUpNode(id int, neighbors []int, channel [numNodes]chan heartbeat, p_channel chan hbTable) {
+func spinUpNode(id int, neighbors []int, channels [numNodes]chan heartbeat, p_channel chan hbTable) {
 	//Vars to keep track of current node's heatbeat and local time
 	table := []heartbeat{};
 	
@@ -130,4 +130,6 @@ func spinUpNode(id int, neighbors []int, channel [numNodes]chan heartbeat, p_cha
 	}
 }
 
-// func sendHB(id int)
+func sendHB(node_id int, neighbor_id int, channels [numNodes]chan heartbeat) {
+	
+}
