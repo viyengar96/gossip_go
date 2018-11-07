@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
+	_ "time"
 
 	"golang.org/x/sync/semaphore"
 )
 
-const shutdown_duration uint64 = 4000000000 //duration that node remains shutdown
 const numNodes = 8
 const numChannels = numNodes * 2;
+
+var downCounter = numNodes;
 
 var p_sem = semaphore.NewWeighted(1)
 
@@ -20,7 +21,6 @@ var hb_send_t uint64
 var shutdown_t uint64
 
 var fail_t uint64;		//Mark node for removal from hb table if local_t - table[i].time >= fail_t
-
 
 type heartbeat struct {
 	id   int
@@ -94,7 +94,7 @@ func main() {
 		go spinUpNode(i, connections[i], gossip_channels, print_channel, master_table)
 	}
 
-	for {
+	for downCounter > 0{
 		if len(print_channel) > 0 {
 			p_val := <-print_channel
 			fmt.Println("\n---------------------\n ");
@@ -127,39 +127,36 @@ func spinUpNode(id int, neighbors []int, channels [numChannels]chan []heartbeat,
 	for {
 		//Simulate shutdown after x seconds
 		if local_shutdown_t == local_t {
-			// fmt.Printf("SHUTDOWN %d\n", id);
-			// return;
+			downCounter -= 1;
+			return;
 		}
 
+		// if (local_send_t*5) == local_t {
+		// }
+
 		//Send current heartbeat to both neighbors
-		if hb_send_t == local_t {
-			// fmt.Printf("SEND 1: %d\n", id);
+		if local_send_t == local_t {
 			channels[neighbors[0]] <- table;
-			// sendHB(table, channels[2]);
-			// fmt.Printf("SEND 2: %d \n", id);
 			channels[neighbors[2]] <- table;
 			local_send_t += hb_send_t;
 		}
 
-		time.Sleep(5 * time.Millisecond);
+		// time.Sleep(5 * time.Millisecond);
 		//Recv current heartbeat from both neighbors
 		if len(channels[neighbors[1]]) > 0 {
-			// fmt.Printf("RECV 1 %d \n", id);
 			newTable := <- channels[neighbors[1]];
 			updateTable(newTable, table, local_t, fail_array);
 		}
 			
 		if len(channels[neighbors[3]]) > 0 {
-			// fmt.Printf("RECV 2 %d \n", id);
 			newTable := <- channels[neighbors[3]];
 			updateTable(newTable, table, local_t, fail_array);
 		}
 
-		// table = checkTable(id, table, fail_array, local_t, p_channel);
+		table = checkTable(id, table, fail_array, local_t, p_channel);
 
 		//Increment heartbeat periodically
 		if local_counter_t == local_t {
-			// fmt.Printf("HB INC %d \n", id);
 			my_hb ++;
 			for i := range table {
 				if table[i].id == id {
@@ -167,13 +164,10 @@ func spinUpNode(id int, neighbors []int, channels [numChannels]chan []heartbeat,
 					table[i].time = local_t;
 				}
 			}
-			// fmt.Println(id);
-			// if id == 7 {
-				var pTable hbTable;
-				pTable.table = table;
-				pTable.id = id;
-				p_channel <- pTable;
-			// }
+			var pTable hbTable;
+			pTable.table = table;
+			pTable.id = id;
+			p_channel <- pTable;
 			local_counter_t += hb_counter_t;
 		}
 
@@ -188,9 +182,6 @@ func updateTable(newTable []heartbeat, oldTable []heartbeat, time uint64, fail_a
 				if newTable[j].hb > oldTable[i].hb {
 					oldTable[i].hb = newTable[j].hb;
 					oldTable[i].time = time;
-				} else if time > oldTable[j].time {
-					oldTable[i].hb = newTable[j].hb;
-					oldTable[i].time = time;
 				}
 			}
 		}
@@ -198,38 +189,25 @@ func updateTable(newTable []heartbeat, oldTable []heartbeat, time uint64, fail_a
 }
 
 func checkTable(id int, table []heartbeat, fail_array []bool, time uint64, p_channel chan hbTable) []heartbeat{
-	newTable := []heartbeat{}
+	newTable := []heartbeat{};
+	validIndices := []int{};
 	for i := range table {
-		// fmt.Println(i);
 		susNode := table[i].id;
 		//If array has been marked and time cleanup has been reached
 		if fail_array[susNode] && (time - table[i].time) >= fail_t*uint64(id+1)*200{ 
 			//Remove node from table
-			// newTable = removeTableEntry(table, i);
-			// pendingRemoval = append(pendingRemoval, i);
-			// fmt.Printf("time difference: %d for pID: %d", time-table[i].time, id);
-			if id == 7 {
-				fmt.Printf("NODE %d IS DEAD at time %d  with time difference %d\n", susNode, time, time - table[i].time);
-			}
 			continue;
 		}
 		if (time - table[i].time) >= fail_t*uint64(id) {
 			//mark for failure
 			fail_array[susNode] = true;
-			// fmt.Printf("NODE %d IS MARKED", susNode);
 		}
-		newTable = append(newTable, table[i]);
-		// fmt.Println(susNode);
-	}
-	// fmt.Printf("New Table Size: %d, Curr Table Size: %d, ID: %d\n", len(newTable), len(table), id);
+		validIndices = append(validIndices, i);
+	}	
 
-	// if len(newTable) < len(table) {
-	// 	var pTable hbTable;
-	// 	pTable.table = newTable;
-	// 	pTable.id = id;
-	// 	p_channel <- pTable;
-	// }
-	
+	for i := range validIndices {
+		newTable = append(newTable, table[validIndices[i]])
+	}
 	
 	return newTable;
 }
@@ -237,13 +215,3 @@ func checkTable(id int, table []heartbeat, fail_array []bool, time uint64, p_cha
 func removeTableEntry(oldTable []heartbeat, i int) []heartbeat {
 	return append(oldTable[:i], oldTable[i+1:]...)
 }
-
-// func shutDownNode() {
-// 	var local_sd_duration uint64
-// 	local_sd_duration = shutdown_duration
-
-// 	//Shutdown for as long as the shutdown duraiton time
-// 	for local_sd_duration > 0 {
-// 		local_sd_duration--
-// 	}
-// }

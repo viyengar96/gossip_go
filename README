@@ -2,12 +2,19 @@ Varun Iyengar, Bevin Tang, Ryan Wong
 Professor Maria Pantoja
 CPE 469 - 01
 
-Lab 4: Gossip Membership Heartbeat Protocol
+Lab 4: Gossip Membership Heartbeat Protocol in Go
 
-Usage: mpiexec -n 8 gossip -X=n -Y=m -Z=i
+Usage: ./gossip_go X Y Z
+
+Sample Run:
+go build gossip
+./gossip_go 10 100 1000
 
 n, m, and i are positive integers
 X: time period (s) to increase the heartbeat counter
 Y: time period (s) to send heartbeat tables to neighbors
 Z: time period (s) to simulate one node failing and print current tables 
 
+What we tested with:
+Each letter should be at least a factor of 10 greater than the letter preceding it (X=X <= Y=10X <= Z=100X)
+Example usage: ./gossip_go 10 100 1000
