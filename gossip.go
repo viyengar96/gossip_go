@@ -8,6 +8,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+const shutdown_duration uint64 = 4000000000 //duration that node remains shutdown
 const numNodes = 8
 
 var p_sem = semaphore.NewWeighted(1)
@@ -15,7 +16,6 @@ var p_sem = semaphore.NewWeighted(1)
 var hb_counter_t uint64
 var hb_send_t uint64
 var node_fail_t uint64
-var shutdown_t uint64
 
 type heartbeat struct {
 	id   int
@@ -54,7 +54,6 @@ func main() {
 	hb_counter_t = uint64(hb_counter_t_signed)
 	hb_send_t = uint64(hb_send_t_signed)
 	node_fail_t = uint64(node_fail_t_signed)
-	shutdown_t = 30
 
 	fmt.Println(hb_counter_t, " ", hb_send_t, " ", node_fail_t)
 
@@ -94,7 +93,7 @@ func main() {
 
 func spinUpNode(id int, neighbors []int, channels [numNodes]chan heartbeat, p_channel chan hbTable) {
 	//Vars to keep track of current node's heatbeat and local time
-	table := []heartbeat{};
+	// table := []heartbeat{};
 	
 	var my_hb uint64;
 	my_hb = 0;
@@ -110,6 +109,7 @@ func spinUpNode(id int, neighbors []int, channels [numNodes]chan heartbeat, p_ch
 	for {
 		//Simulate shutdown after x seconds
 		if node_fail_t == local_t {
+			shutDownNode()
 			local_fail_t += node_fail_t;
 		}
 
@@ -130,6 +130,16 @@ func spinUpNode(id int, neighbors []int, channels [numNodes]chan heartbeat, p_ch
 	}
 }
 
-func sendHB(node_id int, neighbor_id int, channels [numNodes]chan heartbeat) {
-	
+func shutDownNode() {
+	var local_sd_duration uint64
+	local_sd_duration = shutdown_duration
+
+	//Shutdown for as long as the shutdown duraiton time
+	for local_sd_duration > 0 {
+		local_sd_duration--
+	}
 }
+
+// func sendHB(node_id int, neighbor_id int, channels [numNodes]chan heartbeat, channel_locks [numNodes]) {
+
+// }
