@@ -12,11 +12,10 @@ const numNodes = 8
 
 var p_sem = semaphore.NewWeighted(1)
 
-var hb_counter_T int64
-var hb_send_T int64
-var node_fail_T int64
-var err error
-var shutdown_T int64
+var hb_counter_t uint64
+var hb_send_t uint64
+var node_fail_t uint64
+var shutdown_t uint64
 
 type heartbit struct {
 	id   int
@@ -30,25 +29,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	hb_counter_T, err = strconv.ParseInt(os.Args[1], 10, 64)
-	if err != nil {
-		fmt.Println(err)
+	hb_counter_t_signed, cntr_err := strconv.ParseInt(os.Args[1], 10, 64)
+	if cntr_err != nil {
+		fmt.Println(cntr_err)
 		os.Exit(1)
 	}
-	hb_send_T, err = strconv.ParseInt(os.Args[2], 10, 64)
-	if err != nil {
-		fmt.Println(err)
+	hb_send_t_signed, send_err := strconv.ParseInt(os.Args[2], 10, 64)
+	if send_err != nil {
+		fmt.Println(send_err)
 		os.Exit(1)
 	}
-	node_fail_T, err = strconv.ParseInt(os.Args[3], 10, 64)
-	if err != nil {
-		fmt.Println(err)
+	node_fail_t_signed, nfail_err := strconv.ParseInt(os.Args[3], 10, 64)
+	if nfail_err != nil {
+		fmt.Println(nfail_err)
 		os.Exit(1)
 	}
 
-	shutdown_T = 30
+	//Cast signed vars returned from strconv to unsigned
+	hb_counter_t = uint64(hb_counter_t_signed)
+	hb_send_t = uint64(hb_send_t_signed)
+	node_fail_t = uint64(node_fail_t_signed)
+	shutdown_t = 30
 
-	fmt.Println(hb_counter_T, " ", hb_send_T, " ", node_fail_T)
+	fmt.Println(hb_counter_t, " ", hb_send_t, " ", node_fail_t)
 
 	var gossip_channels [numNodes]chan heartbit
 	var print_channel = make(chan heartbit, numNodes+1)
@@ -91,31 +94,29 @@ func spinUpNode(id int, neighbors []int, channel [numNodes]chan heartbit, p_chan
 
 	//Vars for conditionals
 	var local_t uint64
-	local_t = 0  //Used to keep track of current node's local time
-	fail_t := 50 //Shutdown node every x seconds
-	send_t := 10 //Send current table to neighbors every x seconds
-	inc_t := 5   //Increment heartbeat cntr every x seconds
+	local_t = 0 //Used to keep track of current node's local time
 
 	for {
 		//TEST FOR NOW (DELETE LATER)
 		if local_t == 10 {
 			p_channel <- my_hb
+			local_t = 0
 		}
 
 		//Simulate shutdown after x seconds
-		if fail_t == local_t {
+		if shutdown_t == local_t {
 
 		}
 
 		//Send current heartbeat to both neighbors
-		if send_t == local_t {
+		if hb_send_t == local_t {
 
 		} else { //Recv current heartbeat from both neighbors
 
 		}
 
 		//Increment heartbeat periodically
-		if inc_t == local_t {
+		if hb_counter_t == local_t {
 
 		}
 
