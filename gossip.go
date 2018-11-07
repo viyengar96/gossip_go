@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	_ "time"
-
 	"golang.org/x/sync/semaphore"
 )
 
@@ -131,9 +129,6 @@ func spinUpNode(id int, neighbors []int, channels [numChannels]chan []heartbeat,
 			return;
 		}
 
-		// if (local_send_t*5) == local_t {
-		// }
-
 		//Send current heartbeat to both neighbors
 		if local_send_t == local_t {
 			channels[neighbors[0]] <- table;
@@ -141,7 +136,6 @@ func spinUpNode(id int, neighbors []int, channels [numChannels]chan []heartbeat,
 			local_send_t += hb_send_t;
 		}
 
-		// time.Sleep(5 * time.Millisecond);
 		//Recv current heartbeat from both neighbors
 		if len(channels[neighbors[1]]) > 0 {
 			newTable := <- channels[neighbors[1]];
